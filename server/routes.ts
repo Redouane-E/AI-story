@@ -10,7 +10,7 @@ import {
 import { z } from "zod";
 import { generateStory, extractCharacters } from "./openai";
 import { generateSVGIllustration, generateCharacterSVG } from "./svg-generator";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication

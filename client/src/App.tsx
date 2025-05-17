@@ -5,6 +5,7 @@ import Footer from "@/components/footer";
 import Home from "@/pages/home";
 import Story from "@/pages/story";
 import Examples from "@/pages/examples";
+import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 
 function Router() {

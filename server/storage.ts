@@ -12,19 +12,11 @@ import {
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
-// Define a type for upsert user operations
-export type UpsertUser = {
-  id: string;
-  email: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  profileImageUrl: string | null;
-};
-
 export interface IStorage {
   // Users
-  getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
   
   // Stories
   getStory(id: number): Promise<Story | undefined>;
@@ -41,31 +33,22 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // User methods
-  async getUser(id: string): Promise<User | undefined> {
+  async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
       .values({
-        id: userData.id,
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        profileImageUrl: userData.profileImageUrl,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          email: userData.email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          profileImageUrl: userData.profileImageUrl,
-          updatedAt: new Date(),
-        },
+        username: userData.username,
+        password: userData.password,
       })
       .returning();
     return user;
