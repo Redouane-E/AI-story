@@ -30,7 +30,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate a new story from a prompt
   app.post("/api/stories", isAuthenticated, async (req: any, res) => {
     // Get the user ID from the authenticated session
-    const userId = req.user.claims.sub;
+    const userId = req.user.id;
     try {
       const { prompt } = generateStorySchema.parse(req.body);
       
@@ -86,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Continue an existing story
   app.post("/api/stories/:id/continue", isAuthenticated, async (req: any, res) => {
     // Get the user ID from the authenticated session
-    const userId = req.user.claims.sub;
+    const userId = req.user.id;
     try {
       const storyId = parseInt(req.params.id);
       const story = await storage.getStory(storyId);
