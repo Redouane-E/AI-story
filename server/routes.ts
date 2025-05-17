@@ -95,6 +95,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Story not found" });
       }
       
+      // Check if the user is the creator of the story
+      if (story.userId && story.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to continue this story" });
+      }
+      
       // Generate continuation of the story
       const { content: continuedContent } = await generateStory(story.prompt, story.content);
       

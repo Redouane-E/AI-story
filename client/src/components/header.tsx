@@ -6,10 +6,12 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Header() {
   const [location] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, isLoading, isAuthenticated } = useAuth();
   
   const navLinks = [
     { href: "/", label: "Home" },
@@ -35,7 +37,15 @@ export default function Header() {
               </span>
             </Link>
           ))}
-          <Button>Sign In</Button>
+          {isAuthenticated ? (
+            <Button asChild variant="outline">
+              <a href="/api/logout">Log Out</a>
+            </Button>
+          ) : (
+            <Button asChild>
+              <a href="/api/login">Sign In</a>
+            </Button>
+          )}
         </nav>
         
         {/* Mobile Navigation */}
@@ -59,7 +69,15 @@ export default function Header() {
                   </span>
                 </Link>
               ))}
-              <Button className="mt-4">Sign In</Button>
+              {isAuthenticated ? (
+                <Button asChild variant="outline" className="mt-4">
+                  <a href="/api/logout">Log Out</a>
+                </Button>
+              ) : (
+                <Button asChild className="mt-4">
+                  <a href="/api/login">Sign In</a>
+                </Button>
+              )}
             </div>
           </SheetContent>
         </Sheet>
