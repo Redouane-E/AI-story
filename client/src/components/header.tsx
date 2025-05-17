@@ -30,9 +30,9 @@ export default function Header() {
         <nav className="hidden md:flex space-x-6 items-center">
           {navLinks.map(link => (
             <Link key={link.href} href={link.href}>
-              <a className={`font-body hover:text-primary transition-colors ${location === link.href ? 'text-primary font-semibold' : 'text-foreground'}`}>
+              <span className={`font-body hover:text-primary transition-colors ${location === link.href ? 'text-primary font-semibold' : 'text-foreground'}`}>
                 {link.label}
-              </a>
+              </span>
             </Link>
           ))}
           <Button>Sign In</Button>
@@ -51,12 +51,12 @@ export default function Header() {
             <div className="flex flex-col mt-6 space-y-4">
               {navLinks.map(link => (
                 <Link key={link.href} href={link.href}>
-                  <a 
+                  <span 
                     className={`font-body text-lg py-2 hover:text-primary transition-colors ${location === link.href ? 'text-primary font-semibold' : 'text-foreground'}`}
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {link.label}
-                  </a>
+                  </span>
                 </Link>
               ))}
               <Button className="mt-4">Sign In</Button>
