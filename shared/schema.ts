@@ -13,17 +13,20 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// Users table for local authentication
+// Users table for authentication
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: varchar("username").notNull().unique(),
-  password: varchar("password", { length: 255 }).notNull(),
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  password: varchar("password", { length: 255 }).notNull(), // Added password field
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
+  email: true,
   password: true,
 });
 

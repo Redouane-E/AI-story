@@ -39,16 +39,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db.select().from(users).where(eq(users.email, username));
     return user;
   }
 
   async createUser(userData: InsertUser): Promise<User> {
+    // Generate a random ID for the user
+    const id = Math.floor(Math.random() * 1000000).toString();
     const [user] = await db
       .insert(users)
       .values({
-        username: userData.username,
+        id,
+        email: userData.email,
         password: userData.password,
+        updatedAt: new Date(),
       })
       .returning();
     return user;

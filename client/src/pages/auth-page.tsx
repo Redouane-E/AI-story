@@ -90,13 +90,13 @@ export default function AuthPage() {
 }
 
 function LoginForm() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: { username: string; password: string }) => {
+    mutationFn: async (credentials: { email: string; password: string }) => {
       const res = await apiRequest("POST", "/api/login", credentials);
       if (!res.ok) {
         const errorData = await res.json();
@@ -105,7 +105,7 @@ function LoginForm() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Login successful",
         description: "Welcome back!",
@@ -123,26 +123,27 @@ function LoginForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) {
+    if (!email || !password) {
       toast({
         title: "Missing fields",
-        description: "Please enter both username and password",
+        description: "Please enter both email and password",
         variant: "destructive",
       });
       return;
     }
-    loginMutation.mutate({ username, password });
+    loginMutation.mutate({ email, password });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
       <div className="space-y-2">
-        <Label htmlFor="username">Username</Label>
+        <Label htmlFor="email">Email</Label>
         <Input
-          id="username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Your username"
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Your email address"
           required
         />
       </div>
@@ -169,14 +170,14 @@ function LoginForm() {
 }
 
 function RegisterForm() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
 
   const registerMutation = useMutation({
-    mutationFn: async (userData: { username: string; password: string }) => {
+    mutationFn: async (userData: { email: string; password: string }) => {
       const res = await apiRequest("POST", "/api/register", userData);
       if (!res.ok) {
         const errorData = await res.json();
@@ -185,7 +186,7 @@ function RegisterForm() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Registration successful",
         description: "Your account has been created!",
@@ -203,7 +204,7 @@ function RegisterForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password || !confirmPassword) {
+    if (!email || !password || !confirmPassword) {
       toast({
         title: "Missing fields",
         description: "Please fill all fields",
@@ -227,18 +228,27 @@ function RegisterForm() {
       });
       return;
     }
-    registerMutation.mutate({ username, password });
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    registerMutation.mutate({ email, password });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
       <div className="space-y-2">
-        <Label htmlFor="register-username">Username</Label>
+        <Label htmlFor="register-email">Email</Label>
         <Input
-          id="register-username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Choose a username"
+          id="register-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Your email address"
           required
         />
       </div>
