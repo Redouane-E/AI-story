@@ -52,9 +52,12 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
+    new LocalStrategy({
+      usernameField: 'email',
+      passwordField: 'password'
+    }, async (email, password, done) => {
       try {
-        const user = await storage.getUserByUsername(username);
+        const user = await storage.getUserByUsername(email);
         if (!user || !(await comparePasswords(password, user.password))) {
           return done(null, false);
         } else {
@@ -67,7 +70,7 @@ export function setupAuth(app: Express) {
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
-  passport.deserializeUser(async (id: number, done) => {
+  passport.deserializeUser(async (id: string, done) => {
     try {
       const user = await storage.getUser(id);
       done(null, user);
@@ -78,26 +81,26 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      const { username, password } = req.body;
+      const { email, password } = req.body;
       
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
       }
       
-      const existingUser = await storage.getUserByUsername(username);
+      const existingUser = await storage.getUserByUsername(email);
       if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
+        return res.status(400).json({ message: "Email already exists" });
       }
 
       const hashedPassword = await hashPassword(password);
       const user = await storage.createUser({
-        username,
+        email,
         password: hashedPassword,
       });
 
       req.login(user, (err) => {
         if (err) return next(err);
-        res.status(201).json({ id: user.id, username: user.username });
+        res.status(201).json({ id: user.id, email: user.email });
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -111,13 +114,13 @@ export function setupAuth(app: Express) {
         return next(err);
       }
       if (!user) {
-        return res.status(401).json({ message: "Invalid username or password" });
+        return res.status(401).json({ message: "Invalid email or password" });
       }
       req.login(user, (err) => {
         if (err) {
           return next(err);
         }
-        return res.json({ id: user.id, username: user.username });
+        return res.json({ id: user.id, email: user.email });
       });
     })(req, res, next);
   });
@@ -132,7 +135,7 @@ export function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ message: "Unauthorized" });
     const user = req.user;
-    res.json({ id: user.id, username: user.username });
+    res.json({ id: user.id, email: user.email });
   });
 }
 
