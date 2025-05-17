@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import CharacterCard from "@/components/character-card";
 import SVGIllustration from "@/components/svg-illustration";
 import { type Story } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 interface StoryDisplayProps {
   story: Story;
@@ -18,6 +20,7 @@ export default function StoryDisplay({
   isLoading = false
 }: StoryDisplayProps) {
   const { toast } = useToast();
+  const storyContentRef = useRef<HTMLDivElement>(null);
   
   const copyStory = () => {
     const textToCopy = `${story.title}\n\n${story.content}`;
@@ -62,6 +65,68 @@ export default function StoryDisplay({
     }
   };
   
+  const exportToPDF = async () => {
+    if (!storyContentRef.current) return;
+    
+    try {
+      toast({
+        title: "Preparing PDF",
+        description: "Creating your PDF, please wait...",
+      });
+      
+      // Create a new PDF document
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      // Capture story content as canvas
+      const canvas = await html2canvas(storyContentRef.current, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        logging: false
+      });
+      
+      // Convert the canvas to an image
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      
+      // Calculate dimensions to fit on PDF
+      const imgWidth = 210; // A4 width in mm (210mm)
+      const pageHeight = 297; // A4 height in mm (297mm)
+      const imgHeight = canvas.height * imgWidth / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+      
+      // Add image to first page
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      // Add new pages if content overflows
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      // Save the PDF
+      pdf.save(`${story.title.replace(/\s+/g, '_')}.pdf`);
+      
+      toast({
+        title: "PDF created",
+        description: "Your story has been exported as a PDF!",
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "Export failed",
+        description: "Failed to create PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   return (
     <section className="mb-16 animate-page-turn">
       <Card className="relative bg-white rounded-xl shadow-xl p-6 md:p-10 page-curl overflow-hidden mb-8">
@@ -88,6 +153,15 @@ export default function StoryDisplay({
           >
             <i className="ri-share-line text-xl"></i>
           </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={exportToPDF}
+            className="p-2 text-gray-500 hover:text-primary transition-colors rounded"
+            title="Export as PDF"
+          >
+            <i className="ri-file-pdf-line text-xl"></i>
+          </Button>
         </div>
         
         {/* Story Illustration */}
@@ -98,7 +172,7 @@ export default function StoryDisplay({
         </div>
         
         {/* Story Content */}
-        <div className="prose max-w-none mb-8">
+        <div ref={storyContentRef} className="prose max-w-none mb-8">
           {story.content.split('\n\n').map((paragraph, index) => (
             <p key={index} className="font-body text-lg leading-relaxed mb-4">
               {paragraph}
