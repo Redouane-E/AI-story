@@ -10,10 +10,27 @@ import {
 import { z } from "zod";
 import { generateStory, extractCharacters } from "./openai";
 import { generateSVGIllustration, generateCharacterSVG } from "./svg-generator";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up authentication
+  await setupAuth(app);
+  
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
   // Generate a new story from a prompt
-  app.post("/api/stories", async (req, res) => {
+  app.post("/api/stories", isAuthenticated, async (req: any, res) => {
+    // Get the user ID from the authenticated session
+    const userId = req.user.claims.sub;
     try {
       const { prompt } = generateStorySchema.parse(req.body);
       
@@ -23,13 +40,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate SVG illustration for the story
       const svgData = await generateSVGIllustration(title, content, characters);
       
-      // Create story in storage
+      // Create story in storage with the authenticated user's ID
       const story = await storage.createStory({
         title,
         prompt,
         content,
         svgData,
-        userId: null, // Could be linked to a user in the future
+        userId: userId, // Link the story to the authenticated user
       });
       
       // Create character profiles
@@ -67,7 +84,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Continue an existing story
-  app.post("/api/stories/:id/continue", async (req, res) => {
+  app.post("/api/stories/:id/continue", isAuthenticated, async (req: any, res) => {
+    // Get the user ID from the authenticated session
+    const userId = req.user.claims.sub;
     try {
       const storyId = parseInt(req.params.id);
       const story = await storage.getStory(storyId);

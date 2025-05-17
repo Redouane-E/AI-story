@@ -1,5 +1,7 @@
 import { 
-  users, 
+  users,
+  stories,
+  characters,
   type User, 
   type InsertUser, 
   type Story, 
@@ -8,7 +10,7 @@ import {
   type InsertCharacter
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 // Define a type for upsert user operations
 export type UpsertUser = {
@@ -76,12 +78,12 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getAllStories(): Promise<Story[]> {
-    return await db.select().from(stories).orderBy(stories.createdAt);
+    return await db.select().from(stories).orderBy(desc(stories.createdAt));
   }
   
   async getFeaturedStories(): Promise<Story[]> {
     // Get three most recent stories
-    return await db.select().from(stories).orderBy(stories.createdAt).limit(3);
+    return await db.select().from(stories).orderBy(desc(stories.createdAt)).limit(3);
   }
   
   async createStory(insertStory: InsertStory): Promise<Story> {
@@ -112,61 +114,6 @@ export class DatabaseStorage implements IStorage {
     const [character] = await db.insert(characters).values(insertCharacter).returning();
     return character;
   }
-
-  async getAllStories(): Promise<Story[]> {
-    return Array.from(this.stories.values())
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-
-  async getFeaturedStories(): Promise<Story[]> {
-    // In a real implementation, this might have different criteria
-    // For now, just return the three most recent stories
-    return Array.from(this.stories.values())
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 3);
-  }
-
-  async createStory(insertStory: InsertStory): Promise<Story> {
-    const id = this.storyIdCounter++;
-    const story: Story = {
-      ...insertStory,
-      id,
-      createdAt: new Date().toISOString(),
-    };
-    this.stories.set(id, story);
-    return story;
-  }
-
-  async updateStoryContent(id: number, content: string): Promise<Story> {
-    const story = this.stories.get(id);
-    if (!story) {
-      throw new Error(`Story with id ${id} not found`);
-    }
-    
-    const updatedStory = { ...story, content };
-    this.stories.set(id, updatedStory);
-    return updatedStory;
-  }
-
-  // Character methods
-  async getCharacter(id: number): Promise<Character | undefined> {
-    return this.characters.get(id);
-  }
-
-  async getCharactersByStoryId(storyId: number): Promise<Character[]> {
-    return Array.from(this.characters.values())
-      .filter(character => character.storyId === storyId);
-  }
-
-  async createCharacter(insertCharacter: InsertCharacter): Promise<Character> {
-    const id = this.characterIdCounter++;
-    const character: Character = {
-      ...insertCharacter,
-      id,
-    };
-    this.characters.set(id, character);
-    return character;
-  }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
