@@ -43,7 +43,7 @@ export default function Header() {
             </Button>
           ) : (
             <Button asChild>
-              <a href="/api/login">Sign In</a>
+              <Link href="/auth">Sign In</Link>
             </Button>
           )}
         </nav>
@@ -75,7 +75,7 @@ export default function Header() {
                 </Button>
               ) : (
                 <Button asChild className="mt-4">
-                  <a href="/api/login">Sign In</a>
+                  <Link href="/auth">Sign In</Link>
                 </Button>
               )}
             </div>

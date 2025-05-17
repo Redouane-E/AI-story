@@ -136,7 +136,7 @@ export function setupAuth(app: Express) {
   });
 }
 
-export const isAuthenticated = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+export const isAuthenticated = (req: any, res: any, next: any) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: "Unauthorized" });
   }
