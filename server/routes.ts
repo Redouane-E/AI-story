@@ -1,0 +1,151 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { 
+  generateStorySchema, 
+  type Story, 
+  type Character, 
+  type StoryWithCharacters 
+} from "@shared/schema";
+import { z } from "zod";
+import { generateStory, extractCharacters } from "./openai";
+import { generateSVGIllustration, generateCharacterSVG } from "./svg-generator";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Generate a new story from a prompt
+  app.post("/api/stories", async (req, res) => {
+    try {
+      const { prompt } = generateStorySchema.parse(req.body);
+      
+      // Generate story content using OpenAI
+      const { title, content, characters } = await generateStory(prompt);
+      
+      // Generate SVG illustration for the story
+      const svgData = await generateSVGIllustration(title, content, characters);
+      
+      // Create story in storage
+      const story = await storage.createStory({
+        title,
+        prompt,
+        content,
+        svgData,
+        userId: null, // Could be linked to a user in the future
+      });
+      
+      // Create character profiles
+      const characterEntities: Character[] = [];
+      
+      for (const character of characters) {
+        const characterSvg = await generateCharacterSVG(character);
+        
+        const savedCharacter = await storage.createCharacter({
+          name: character.name,
+          role: character.role,
+          description: character.description,
+          traits: character.traits,
+          svgData: characterSvg,
+          storyId: story.id,
+        });
+        
+        characterEntities.push(savedCharacter);
+      }
+      
+      // Return the complete story with characters
+      const storyWithCharacters: StoryWithCharacters = {
+        ...story,
+        characters: characterEntities,
+      };
+      
+      res.status(201).json(storyWithCharacters);
+    } catch (error) {
+      console.error("Error generating story:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to generate story" });
+    }
+  });
+  
+  // Continue an existing story
+  app.post("/api/stories/:id/continue", async (req, res) => {
+    try {
+      const storyId = parseInt(req.params.id);
+      const story = await storage.getStory(storyId);
+      
+      if (!story) {
+        return res.status(404).json({ message: "Story not found" });
+      }
+      
+      // Generate continuation of the story
+      const { content: continuedContent } = await generateStory(story.prompt, story.content);
+      
+      // Update the story content
+      const updatedContent = story.content + "\n\n" + continuedContent;
+      const updatedStory = await storage.updateStoryContent(storyId, updatedContent);
+      
+      // Get characters for the story
+      const characters = await storage.getCharactersByStoryId(storyId);
+      
+      // Return the updated story with characters
+      const storyWithCharacters: StoryWithCharacters = {
+        ...updatedStory,
+        characters,
+      };
+      
+      res.status(200).json(storyWithCharacters);
+    } catch (error) {
+      console.error("Error continuing story:", error);
+      res.status(500).json({ message: "Failed to continue story" });
+    }
+  });
+  
+  // Get all stories
+  app.get("/api/stories", async (req, res) => {
+    try {
+      const stories = await storage.getAllStories();
+      res.status(200).json(stories);
+    } catch (error) {
+      console.error("Error fetching stories:", error);
+      res.status(500).json({ message: "Failed to fetch stories" });
+    }
+  });
+  
+  // Get a specific story by ID with its characters
+  app.get("/api/stories/:id", async (req, res) => {
+    try {
+      const storyId = parseInt(req.params.id);
+      const story = await storage.getStory(storyId);
+      
+      if (!story) {
+        return res.status(404).json({ message: "Story not found" });
+      }
+      
+      const characters = await storage.getCharactersByStoryId(storyId);
+      
+      const storyWithCharacters: StoryWithCharacters = {
+        ...story,
+        characters,
+      };
+      
+      res.status(200).json(storyWithCharacters);
+    } catch (error) {
+      console.error("Error fetching story:", error);
+      res.status(500).json({ message: "Failed to fetch story" });
+    }
+  });
+  
+  // Get featured/example stories
+  app.get("/api/stories/featured", async (req, res) => {
+    try {
+      const stories = await storage.getFeaturedStories();
+      res.status(200).json(stories);
+    } catch (error) {
+      console.error("Error fetching featured stories:", error);
+      res.status(500).json({ message: "Failed to fetch featured stories" });
+    }
+  });
+
+  const httpServer = createServer(app);
+
+  return httpServer;
+}

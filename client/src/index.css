@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 33% 98%;
+    --foreground: 210 29% 24%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 29% 24%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 29% 24%;
+
+    --primary: 359 100% 70%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 173 63% 55%;
+    --secondary-foreground: 210 40% 98%;
+
+    --accent: 48 100% 71%;
+    --accent-foreground: 210 29% 24%;
+
+    --muted: 60 5% 96%;
+    --muted-foreground: 25 5% 45%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 20 6% 90%;
+    --input: 20 6% 90%;
+    --ring: 20 14% 4%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 214 30% 15%;
+    --foreground: 210 40% 98%;
+
+    --card: 214 35% 10%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 214 35% 10%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 359 100% 70%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 173 63% 55%;
+    --secondary-foreground: 210 40% 98%;
+
+    --accent: 48 100% 71%;
+    --accent-foreground: 210 29% 24%;
+
+    --muted: 214 20% 20%;
+    --muted-foreground: 210 5% 65%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 10% 25%;
+    --input: 214 10% 25%;
+    --ring: 210 40% 90%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+
+  /* Font styles */
+  .font-heading {
+    font-family: 'Playfair Display', serif;
+  }
+
+  .font-body {
+    font-family: 'Open Sans', sans-serif;
+  }
+
+  .font-accent {
+    font-family: 'Caveat', cursive;
+  }
+}
+
+@layer components {
+  /* Page curl effect */
+  .page-curl {
+    position: relative;
+  }
+  
+  .page-curl::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 0 20px 20px;
+    border-color: transparent transparent #e2e8f0 transparent;
+    box-shadow: -2px -2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .page-curl:hover::after {
+    border-width: 0 0 25px 25px;
+  }
+
+  /* Animations */
+  @keyframes pageTurn {
+    0% { 
+      transform: rotateY(0deg);
+      opacity: 0;
+    }
+    100% { 
+      transform: rotateY(0deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes float {
+    0%, 100% { 
+      transform: translateY(0px);
+    }
+    50% { 
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes loadingDots {
+    0%, 100% { 
+      opacity: 0.2;
+    }
+    50% { 
+      opacity: 1;
+    }
+  }
+
+  .animate-page-turn {
+    animation: pageTurn 0.6s ease-in-out;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .loading-dot {
+    animation: loadingDots 1.4s infinite ease-in-out;
+  }
+
+  .loading-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .loading-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  /* Gradient mask */
+  .gradient-mask {
+    mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+  }
+}
