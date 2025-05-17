@@ -66,57 +66,177 @@ export default function StoryDisplay({
   };
   
   const exportToPDF = async () => {
-    if (!storyContentRef.current) return;
-    
     try {
       toast({
         title: "Preparing PDF",
         description: "Creating your PDF, please wait...",
       });
       
-      // Create a new PDF document
+      // Create a new PDF document with more appropriate margins
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'a4',
+        compress: true
       });
       
-      // Capture story content as canvas
-      const canvas = await html2canvas(storyContentRef.current, {
-        scale: 2, // Higher quality
-        useCORS: true,
-        logging: false
+      // Set document properties
+      pdf.setProperties({
+        title: story.title,
+        subject: 'AI Generated Story',
+        creator: 'Story Generator App'
       });
       
-      // Convert the canvas to an image
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      // Add title
+      pdf.setFontSize(24);
+      pdf.setTextColor(33, 33, 33);
+      const titleWidth = pdf.getStringUnitWidth(story.title) * 24 / pdf.internal.scaleFactor;
+      const titleX = (pdf.internal.pageSize.width - titleWidth) / 2;
+      pdf.text(story.title, titleX > 0 ? titleX : 15, 20);
       
-      // Calculate dimensions to fit on PDF
-      const imgWidth = 210; // A4 width in mm (210mm)
-      const pageHeight = 297; // A4 height in mm (297mm)
-      const imgHeight = canvas.height * imgWidth / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
+      // Add horizontal line
+      pdf.setDrawColor(100, 100, 100);
+      pdf.setLineWidth(0.5);
+      pdf.line(15, 25, 195, 25);
       
-      // Add image to first page
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      
-      // Add new pages if content overflows
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      // Process the SVG data to add illustration
+      if (story.svgData) {
+        try {
+          // Convert SVG to Base64 image
+          const svgContainer = document.createElement('div');
+          svgContainer.innerHTML = story.svgData;
+          const svgElement = svgContainer.querySelector('svg');
+          
+          if (svgElement) {
+            // Set fixed dimensions for the SVG
+            svgElement.setAttribute('width', '800');
+            svgElement.setAttribute('height', '450');
+            
+            const svgString = new XMLSerializer().serializeToString(svgElement);
+            const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+            
+            // Create a canvas element to draw the SVG
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 450;
+            const ctx = canvas.getContext('2d');
+            
+            // Create image from SVG
+            const img = new Image();
+            img.onload = () => {
+              if (ctx) {
+                ctx.drawImage(img, 0, 0, 800, 450);
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                
+                // Calculate image dimensions for PDF
+                const imgWidth = 180; // slightly less than A4 width with margins
+                const imgHeight = (450 * imgWidth) / 800;
+                
+                // Add image to PDF centered
+                pdf.addImage(
+                  imgData, 
+                  'PNG', 
+                  (210 - imgWidth) / 2, // center horizontally
+                  35, // position below title
+                  imgWidth, 
+                  imgHeight
+                );
+                
+                // Add story content
+                addStoryContent(imgHeight + 45); // Start text below image
+              }
+            };
+            
+            // Set the image source to SVG blob URL
+            img.src = URL.createObjectURL(svgBlob);
+          } else {
+            // If SVG element is not found, still add content without image
+            addStoryContent(35);
+          }
+        } catch (svgError) {
+          console.error("Error processing SVG:", svgError);
+          // Continue with text only if SVG fails
+          addStoryContent(35);
+        }
+      } else {
+        // No SVG data, just add content
+        addStoryContent(35);
       }
       
-      // Save the PDF
-      pdf.save(`${story.title.replace(/\s+/g, '_')}.pdf`);
-      
-      toast({
-        title: "PDF created",
-        description: "Your story has been exported as a PDF!",
-      });
+      function addStoryContent(startY) {
+        // Set font for content
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(12);
+        pdf.setTextColor(51, 51, 51);
+        
+        // Split content into paragraphs and add to PDF
+        const paragraphs = story.content.split('\n\n');
+        let currentY = startY;
+        
+        paragraphs.forEach((paragraph) => {
+          // Split paragraph into lines that fit within the page width
+          const textLines = pdf.splitTextToSize(paragraph, 170); // 170mm width with margins
+          
+          // Check if content will overflow the page
+          if (currentY + (textLines.length * 7) > 280) { // 280mm is close to A4 height with margins
+            pdf.addPage();
+            currentY = 20; // Reset Y position on new page
+          }
+          
+          // Add each line of text
+          pdf.text(textLines, 20, currentY);
+          currentY += textLines.length * 7 + 7; // Add paragraph spacing
+        });
+        
+        // Add character information if available
+        if (story.characters && story.characters.length > 0) {
+          // Check if we need a new page for characters
+          if (currentY > 240) {
+            pdf.addPage();
+            currentY = 20;
+          }
+          
+          // Add character section title
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(18);
+          pdf.text('Character Profiles', 20, currentY);
+          currentY += 10;
+          
+          // Add each character
+          story.characters.forEach((character) => {
+            // Check if we need a new page
+            if (currentY > 260) {
+              pdf.addPage();
+              currentY = 20;
+            }
+            
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(14);
+            pdf.text(`${character.name} - ${character.role}`, 20, currentY);
+            currentY += 7;
+            
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(12);
+            const descLines = pdf.splitTextToSize(character.description, 170);
+            pdf.text(descLines, 20, currentY);
+            currentY += descLines.length * 6 + 5;
+            
+            if (character.traits && character.traits.length > 0) {
+              pdf.setFont('helvetica', 'italic');
+              pdf.text(`Traits: ${character.traits.join(', ')}`, 20, currentY);
+              currentY += 10;
+            }
+          });
+        }
+        
+        // Save the PDF after content is added
+        pdf.save(`${story.title.replace(/\s+/g, '_')}.pdf`);
+        
+        toast({
+          title: "PDF created",
+          description: "Your story has been exported as a PDF!",
+        });
+      }
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast({
