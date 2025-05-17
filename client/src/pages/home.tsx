@@ -70,6 +70,16 @@ export default function Home() {
     },
   });
   
+  const continueStoryMutation = useMutation({
+    mutationFn: async (storyId: number) => {
+      const response = await apiRequest("POST", `/api/stories/${storyId}/continue`);
+      return response.json();
+    },
+    onSuccess: (data: Story) => {
+      setGeneratedStory(data);
+    },
+  });
+  
   const handleGenerateStory = async () => {
     if (storyPrompt.trim().length < 10) {
       return; // Add validation or show an error
@@ -80,18 +90,7 @@ export default function Home() {
   
   const handleContinueStory = async () => {
     if (!generatedStory) return;
-    
-    const continueStoryMutation = useMutation({
-      mutationFn: async () => {
-        const response = await apiRequest("POST", `/api/stories/${generatedStory.id}/continue`);
-        return response.json();
-      },
-      onSuccess: (data: Story) => {
-        setGeneratedStory(data);
-      },
-    });
-    
-    continueStoryMutation.mutate();
+    continueStoryMutation.mutate(generatedStory.id);
   };
   
   return (

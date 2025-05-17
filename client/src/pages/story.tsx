@@ -12,7 +12,7 @@ export default function StoryPage() {
   const [, setLocation] = useLocation();
   
   // Fetch story details
-  const { data: story, isLoading, error } = useQuery({
+  const { data: story, isLoading, error, refetch } = useQuery({
     queryKey: [`/api/stories/${id}`],
   });
   
@@ -22,8 +22,8 @@ export default function StoryPage() {
       return response.json();
     },
     onSuccess: (data: Story) => {
-      // Refresh the story data
-      window.location.reload();
+      // Refresh the story data without full page reload
+      refetch();
     },
   });
   
